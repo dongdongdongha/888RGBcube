@@ -1,19 +1,34 @@
 package com.example.rgbcube;
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.GridLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -39,10 +54,37 @@ public class MainActivity extends AppCompatActivity {
     private byte[] readBuffer; //수신된 문자열 저장 버퍼
     private int readBufferPosition; //버퍼  내 문자 저장 위치
     String[] array = {"0"}; //수신된 문자열을 쪼개서 저장할 배열
-
+    int[][] a = {{0, 0, 0, 0, 1, 1, 0, 0}, {0, 1, 0, 0, 1, 0, 1, 0}, {0, 0, 1, 0, 1, 0, 1, 0}, {0, 0, 0, 1, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 1, 0, 0}, {0, 0, 1, 0, 1, 0, 1, 0}, {0, 1, 0, 0, 1, 0, 1, 0}, {0, 0, 0, 0, 1, 1, 0, 0}};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Context context = this;
+        Activity activity = this;
+        setContentView(R.layout.activity_main);
+        EdgeToEdge.enable(this);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        GridLayout gridLayout = findViewById(R.id.gridLayout);
+        ConstraintLayout mainLayout = findViewById(R.id.main);
+        ConstraintLayout wrapLayout = findViewById(R.id.wrapLayout);
+        TextView RGBtext = findViewById(R.id.rgbtext);
+        ImageView arrow = findViewById(R.id.arrow);
+
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                ImageView imageView = new ImageView(this);
+                imageView.setImageResource(R.drawable.circle);
+                if (a[i][j]==1) imageView.setImageResource(R.drawable.circle_gray);
+                gridLayout.addView(imageView);
+            }
+        }
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1028);
             //return;
         }
         String[] permission_list = {
@@ -50,48 +92,65 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.ACCESS_COARSE_LOCATION
         };
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter(); //블루투스 어댑터를 디폴트 어댑터로 설정
-
-        if (bluetoothAdapter == null) { //기기가 블루투스를 지원하지 않을때
-            Toast.makeText(getApplicationContext(), "Bluetooth 미지원 기기입니다.", Toast.LENGTH_SHORT).show();
-            //처리코드 작성
-        } else { // 기기가 블루투스를 지원할 때
-            if (bluetoothAdapter.isEnabled()) { // 기기의 블루투스 기능이 켜져있을 경우
-                selectBluetoothDevice(); // 블루투스 디바이스 선택 함수 호출
-            } else { // 기기의 블루투스 기능이 꺼져있을 경우
-                // 블루투스를 활성화 하기 위한 대화상자 출력
-                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                // 선택 값이 onActivityResult함수에서 콜백
-                startActivityForResult(intent, REQUEST_ENABLE_BT);
-                selectBluetoothDevice();
-            }
-
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1028);
         }
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+            wrapLayout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1028);
+                    }
+                    if (bluetoothAdapter == null) { //기기가 블루투스를 지원하지 않을때
+                        Toast.makeText(getApplicationContext(), "Bluetooth 미지원 기기입니다.", Toast.LENGTH_SHORT).show();
+                        //처리코드 작성
+                    } else { // 기기가 블루투스를 지원할 때
+                        if (bluetoothAdapter.isEnabled()) { // 기기의 블루투스 기능이 켜져있을 경우
+                            selectBluetoothDevice(); // 블루투스 디바이스 선택 함수 호출
+                            //if (bluetoothDevice != null && bluetoothSocket != null) {
+
+                            gridLayout.removeAllViews();
+
+                            for (int i = 0; i < 8; i++) {
+                                for (int j = 0; j < 8; j++) {
+                                    ImageView imageView = new ImageView(context);
+                                    imageView.setImageResource(R.drawable.circle_dark);
+                                    if (a[i][j]==1) imageView.setImageResource(R.drawable.circle_blue);
+                                    gridLayout.addView(imageView);
+                                }
+                            }
+                            arrow.setVisibility(View.VISIBLE);
+                            RGBtext.setText("RGB 큐브 연결됨");
+                            mainLayout.setBackgroundColor(Color.rgb(0x17, 0x17, 0x1B));
+
+                            Animation ani;
+                            ani = AnimationUtils.loadAnimation(context, R.anim.animation);
+                            arrow.startAnimation(ani);
+                            //}
+                        } else { // 기기의 블루투스 기능이 꺼져있을 경우
+                            // 블루투스를 활성화 하기 위한 대화상자 출력
+                            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                            // 선택 값이 onActivityResult함수에서 콜백
+                                startActivityForResult(intent, REQUEST_ENABLE_BT);
+                            selectBluetoothDevice();
+                        }
+
+                    }
+                }
+            });
     }
 
     int pairedDeviceCount; //페어링 된 기기의 크기를 저장할 변수
-
     public void selectBluetoothDevice() {
+        //이미 페어링 되어있는 블루투스 기기를 탐색
+
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1028);
             //return;
         }
-        //이미 페어링 되어있는 블루투스 기기를 탐색
         devices = bluetoothAdapter.getBondedDevices();
         //페어링 된 디바이스 크기 저장
         pairedDeviceCount = devices.size();
@@ -170,6 +229,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
     public void receiveData() {
         final Handler handler = new Handler();
         //데이터 수신을 위한 버퍼 생성
