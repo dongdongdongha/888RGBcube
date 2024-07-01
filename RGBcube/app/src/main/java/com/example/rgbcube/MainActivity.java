@@ -109,26 +109,26 @@ public class MainActivity extends AppCompatActivity {
                     } else { // 기기가 블루투스를 지원할 때
                         if (bluetoothAdapter.isEnabled()) { // 기기의 블루투스 기능이 켜져있을 경우
                             selectBluetoothDevice(); // 블루투스 디바이스 선택 함수 호출
-                            //if (bluetoothDevice != null && bluetoothSocket != null) {
+                            if (bluetoothDevice != null && bluetoothSocket != null) {
 
-                            gridLayout.removeAllViews();
+                                gridLayout.removeAllViews();
 
-                            for (int i = 0; i < 8; i++) {
-                                for (int j = 0; j < 8; j++) {
-                                    ImageView imageView = new ImageView(context);
-                                    imageView.setImageResource(R.drawable.circle_dark);
-                                    if (a[i][j]==1) imageView.setImageResource(R.drawable.circle_blue);
-                                    gridLayout.addView(imageView);
+                                for (int i = 0; i < 8; i++) {
+                                    for (int j = 0; j < 8; j++) {
+                                        ImageView imageView = new ImageView(context);
+                                        imageView.setImageResource(R.drawable.circle_dark);
+                                        if (a[i][j]==1) imageView.setImageResource(R.drawable.circle_blue);
+                                        gridLayout.addView(imageView);
+                                    }
                                 }
-                            }
-                            arrow.setVisibility(View.VISIBLE);
-                            RGBtext.setText("RGB 큐브 연결됨");
-                            mainLayout.setBackgroundColor(Color.rgb(0x17, 0x17, 0x1B));
+                                arrow.setVisibility(View.VISIBLE);
+                                RGBtext.setText("RGB 큐브 연결됨");
+                                mainLayout.setBackgroundColor(Color.rgb(0x17, 0x17, 0x1B));
 
-                            Animation ani;
-                            ani = AnimationUtils.loadAnimation(context, R.anim.animation);
-                            arrow.startAnimation(ani);
-                            //}
+                                Animation ani;
+                                ani = AnimationUtils.loadAnimation(context, R.anim.animation);
+                                arrow.startAnimation(ani);
+                            }
                         } else { // 기기의 블루투스 기능이 꺼져있을 경우
                             // 블루투스를 활성화 하기 위한 대화상자 출력
                             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -180,12 +180,11 @@ public class MainActivity extends AppCompatActivity {
             builder.setItems(charSequences, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
+                    if("취소".equals(charSequences[which].toString())) return;
                     //해당 디바이스와 연결하는 함수 호출
                     connectDevice(charSequences[which].toString());
                 }
             });
-            //뒤로가기 버튼 누를때 창이 안닫히도록 설정
-            builder.setCancelable(false);
             //다이얼로그 생성
             AlertDialog alertDialog = builder.create();
             alertDialog.show();
@@ -203,6 +202,8 @@ public class MainActivity extends AppCompatActivity {
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1028);
             //return;
         }
         for (BluetoothDevice tempDevice : devices) {
@@ -213,7 +214,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
         }
-        Toast.makeText(getApplicationContext(), bluetoothDevice.getName() + " 연결 완료!", Toast.LENGTH_SHORT).show();
         //UUID생성
         UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
         //Rfcomm 채널을 통해 블루투스 디바이스와 통신하는 소켓 생성
@@ -228,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        Toast.makeText(getApplicationContext(), bluetoothDevice.getName() + " 연결 완료!", Toast.LENGTH_SHORT).show();
     }
 
     public void receiveData() {
